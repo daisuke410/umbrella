@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>貸し傘予約・管理アプリ</title>
+  <style>
+    body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background: #f5f5f7; color: #333;}
+    header {
+      background: #fff;
+      border-bottom: 1.5px solid #e0e7ed;
+      display: flex;
+      align-items: center;
+      padding: 8px 0 0 0;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px #eef0fa3a;
+    }
+    #adminMenuBtn {
+      background: none;
+      border: none;
+      color: #0066cc;
+      font-size: 29px;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 10px;
+      margin-right: 4px;
+      border-radius:8px;
+      cursor:pointer;
+      user-select:none;
+    }
+    header h1 { flex: 1; margin: 0; font-size: 1.7em; color: #0066cc; padding-left: 4px;}
+    button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; margin: 8px 0; cursor: pointer;}
+    input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;}
+    .section { background: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);}
+    table { width: 100%; border-collapse: collapse; margin-bottom: 1em;}
+    th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: center;}
+    .available { color: #009688;}
+    .reserved { color: #e91e63;}
+    .borrowed { color: #999;}
+    .btn-csv { background: #009688; margin-bottom: 6px;}
+    .btn-return { background: #e91e63; color: white; font-size: 13px; padding: 6px 14px; border-radius: 6px; margin: 0;}
+    .btn-cancel { background: #b5b5b5 !important; color: #222;}
+    #reserveMsg, #addMsg, #adminMsg, #umbEditMsg { color: #d32f2f; }
+    #adminModal {
+      display:none; z-index:1002;
+      position: fixed; left:0; top:0; width:100vw; height:100vh;
+      background: rgba(0,0,0,0.18);
+      align-items: center; justify-content: center;
+    }
+    #adminModalBox {
+      background: #f5faff;
+      border-radius: 14px;
+      box-shadow: 0 2px 24px #0050bb26;
+      border: 1.2px solid #b5d6f6;
+      width: 90vw; max-width: 430px; min-height: 90px;
+      margin: 0 auto; margin-top:8vh;
+      padding: 1.5em 1.2em 1.2em 1.2em;
+      position: relative;
+      display: flex; flex-direction: column;
+      align-items: stretch;
+      max-height: 82vh;
+      overflow-y: auto;
+    }
+    #adminCloseBtn {
+      position: absolute; top:8px; right:12px;
+      background:none;border:none;color:#888;font-size:2em;line-height:1;cursor:pointer;
+    }
+    #logoutBtn {background:#b5b5b5; color:#333;}
+    .editBtns button { font-size: 13px; padding: 6px 12px; margin:2px; }
+    .btn-edit {background:#03a9f4;}
+    .btn-del {background:#c62828;}
+    .btn-edit-cancel {background: #bdbdbd !important; color: #222;}
+    [data-editingbar] input { padding:6px 8px; margin:0 5px 0 0; width:90px;}
+    @media (max-width:550px) {
+      header h1 {font-size:1.2em;}
+      #adminModalBox {width:96vw; min-width:0; max-width:99vw; max-height: 87vh;}
+      [data-editingbar] input { width:70px;}
+    }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+  <header>
+    <button id="adminMenuBtn" title="管理者メニュー"><span>≡</span></button>
+    <h1>貸し傘予約・管理アプリ</h1>
+  </header>
+
+  <!-- 管理者モーダルダイアログ -->
+  <div id="adminModal">
+    <form id="adminModalBox" onsubmit="return false;">
+      <button id="adminCloseBtn" type="button" title="閉じる">&times;</button>
+      <div id="adminLogin">
+        <h3 style="margin-bottom:10px;margin-top:2px;">管理者メニュー</h3>
+        <input type="password" id="adminPass" placeholder="管理者パスワード（初期：admin）">
+        <button id="adminLoginBtn" type="button">ログイン</button>
+        <div id="adminMsg"></div>
+      </div>
+      <div id="adminCtrl" style="display:none;">
+        <h4 style="margin:12px 0 4px 0;">新規傘登録</h4>
+        <p style="margin:8px 0 3px 0;">傘ID（数字・英字可）：</p>
+        <input type="text" id="addUmbrellaId" placeholder="例：umbrella10">
+        <button id="addUmbrellaBtn" type="button">傘を追加</button>
+        <div id="addMsg"></div>
+        <div style="margin:16px 0 8px 0;border-top:1px solid #b5d6f6;"></div>
+        <h4 style="margin:0 0 7px 0;">傘一覧の編集</h4>
+        <div style="overflow-x:auto">
+          <table id="umbEditTable">
+            <thead>
+              <tr><th>傘ID</th><th>状態</th><th>予約者</th><th>操作</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="umbEditMsg"></div>
+        <button id="logoutBtn" type="button">ログアウト</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="section">
+    <h2>傘の一覧・予約/返却/解除</h2>
+    <input type="text" id="reserveName" placeholder="お名前を入力して予約・返却・解除">
+    <button id="csvBtn" class="btn-csv">CSVエクスポート</button>
+    <button id="clearBtn" style="background:#bdbdbd;color:#444;">全データ削除</button>
+    <table>
+      <thead>
+        <tr>
+          <th>傘ID</th>
+          <th>状態</th>
+          <th>利用者/予約者</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="umbrellaList"></tbody>
+    </table>
+    <div id="reserveMsg" style="color:#d32f2f;"></div>
+  </div>
+
+  <div class="section">
+    <h2>傘を借りる</h2>
+    <input type="text" id="userName" placeholder="お名前を入力" required>
+    <button id="startScan">QRコードを読み取る</button>
+    <div id="reader" style="width:100%" class="hidden"></div>
+    <div id="result"></div>
+    <button id="borrowBtn" class="hidden">この傘を借りる</button>
+  </div>
+
+<script>
+  // 傘台帳初期化
+  if (!localStorage.getItem("umbrella_list")) {
+    const arr = [];
+    for(let i=1; i<=5; ++i) arr.push({id: 'umbrella' + i, status: 'available', reservedBy: '', reservedAt: '' });
+    localStorage.setItem("umbrella_list", JSON.stringify(arr));
+  }
+
+  // 管理者メニューUI制御
+  let adminLoggedIn = false;
+  let ADMIN_PASS = localStorage.getItem("admin_pass") || "admin";
+  const adminMenuBtn = document.getElementById('adminMenuBtn');
+  const adminModal = document.getElementById('adminModal');
+  const adminLogin = document.getElementById('adminLogin');
+  const adminCtrl = document.getElementById('adminCtrl');
+  const umbEditMsg = document.getElementById('umbEditMsg');
+  adminMenuBtn.onclick = ()=>{
+    adminModal.style.display = "flex";
+    document.getElementById('adminMsg').textContent='';
+    document.getElementById('addMsg').textContent='';
+    document.getElementById('umbEditMsg').textContent='';
+    document.getElementById('addUmbrellaId').value = '';
+    drawAdminUmbrellaEditTable();
+    if(!adminLoggedIn){
+      adminLogin.style.display = "block";
+      adminCtrl.style.display = "none";
+      document.getElementById('adminPass').value="";
+    }
+  };
+  document.getElementById('adminCloseBtn').onclick = ()=>{ adminModal.style.display = "none"; };
+  adminModal.onclick = function(e){ if(e.target===adminModal) adminModal.style.display="none"; };
+  document.getElementById('adminLoginBtn').onclick = ()=>{
+    const pass = document.getElementById('adminPass').value;
+    if(pass === ADMIN_PASS){
+      adminLoggedIn = true;
+      adminLogin.style.display="none";
+      adminCtrl.style.display="block";
+      document.getElementById('adminMsg').textContent='';
+      document.getElementById('addMsg').textContent='';
+      document.getElementById('umbEditMsg').textContent='';
+      document.getElementById('addUmbrellaId').value="";
+      drawAdminUmbrellaEditTable();
+    } else {
+      document.getElementById('adminMsg').textContent="パスワードが違います";
+    }
+  }
+  document.getElementById('logoutBtn').onclick = ()=>{
+    adminLoggedIn = false;
+    adminLogin.style.display="block";
+    adminCtrl.style.display="none";
+    document.getElementById('adminPass').value="";
+    adminModal.style.display = "none";
+  };
+  document.getElementById('addUmbrellaBtn').onclick = ()=>{
+    const newId = document.getElementById('addUmbrellaId').value.trim();
+    const addMsg = document.getElementById('addMsg');
+    if(!newId){ addMsg.textContent="傘IDを入力してください";return;}
+    const umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+    if(umbrellas.some(u=>u.id === newId)){
+      addMsg.textContent="その傘IDは既に存在します";
+      return;
+    }
+    umbrellas.push({id:newId, status:'available', reservedBy:'', reservedAt:''});
+    localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+    addMsg.textContent="傘 "+newId+" を追加しました";
+    drawUmbrellaList();
+    drawAdminUmbrellaEditTable();
+  };
+  function drawAdminUmbrellaEditTable() {
+    const table = document.getElementById('umbEditTable');
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = '';
+    let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+    umbrellas.forEach((u, idx) => {
+      let editing = !!u._editing;
+      let tr = document.createElement('tr');
+      if(editing){
+        tr.setAttribute('data-editingbar','1');
+        tr.innerHTML = `
+          <td>
+            <input type="text" value="${u.id}" style="width:88px">
+          </td>
+          <td>
+            <select>
+              <option value="available" ${u.status==="available"?"selected":""}>利用可</option>
+              <option value="reserved" ${u.status==="reserved"?"selected":""}>予約済</option>
+              <option value="borrowed" ${u.status==="borrowed"?"selected":""}>貸出中</option>
+            </select>
+          </td>
+          <td>
+            <input type="text" value="${u.reservedBy?u.reservedBy:""}" style="width:90px">
+          </td>
+          <td class="editBtns">
+            <button type="button" class="btn-edit" data-save="${u.id}">保存</button>
+            <button type="button" class="btn-edit-cancel" data-cancel="${u.id}">キャンセル</button>
+          </td>`;
+      }else{
+        tr.innerHTML = `
+          <td>${u.id}</td>
+          <td class="${u.status}">${u.status==="available"?"利用可":u.status==="reserved"?"予約済":"貸出中"}</td>
+          <td>${u.reservedBy||""}</td>
+          <td class="editBtns">
+              <button type="button" class="btn-edit" data-edit="${u.id}">修正</button>
+              <button type="button" class="btn-del" data-del="${u.id}">削除</button>
+          </td>`;
+      }
+      tbody.appendChild(tr);
+    });
+
+    Array.from(tbody.querySelectorAll('[data-edit]')).forEach(btn=>{
+      btn.onclick = ()=>{
+        let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+        umbrellas.forEach(u=>{ delete u._editing; });
+        let u = umbrellas.find(u=>u.id===btn.getAttribute('data-edit'));
+        u._editing = true;
+        localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+        drawAdminUmbrellaEditTable();
+      };
+    });
+    Array.from(tbody.querySelectorAll('[data-save]')).forEach(btn=>{
+      btn.onclick = ()=>{
+        let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+        let idx = umbrellas.findIndex(u=>u.id===btn.getAttribute('data-save'));
+        if(idx<0) return;
+        let row = btn.closest('tr');
+        let newId = row.children[0].querySelector('input').value.trim();
+        let newStatus = row.children[1].querySelector('select').value;
+        let newReservedBy = row.children[2].querySelector('input').value.trim();
+        if(!newId){
+          umbEditMsg.textContent = "傘IDは必須です"; return;
+        }
+        if(newId !== umbrellas[idx].id && umbrellas.some(u=>u.id===newId)){
+          umbEditMsg.textContent = "その傘IDは既に存在します"; return;
+        }
+        let oldId = umbrellas[idx].id;
+        umbrellas[idx].id = newId;
+        umbrellas[idx].status = newStatus;
+        umbrellas[idx].reservedBy = newReservedBy;
+        if(newStatus !== 'reserved'){
+          umbrellas[idx].reservedBy = '';
+          umbrellas[idx].reservedAt = '';
+        }else{
+          umbrellas[idx].reservedAt = Date.now();
+        }
+        delete umbrellas[idx]._editing;
+        if(oldId!==newId && localStorage.getItem('borrow_'+oldId)){
+          localStorage.setItem('borrow_'+newId,localStorage.getItem('borrow_'+oldId));
+          localStorage.removeItem('borrow_'+oldId);
+        }
+        localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+        umbEditMsg.textContent = "編集を保存しました";
+        drawUmbrellaList();
+        drawAdminUmbrellaEditTable();
+      }
+    });
+    Array.from(tbody.querySelectorAll('[data-cancel]')).forEach(btn=>{
+      btn.onclick = ()=>{
+        let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+        umbrellas.forEach(u=>{ delete u._editing; });
+        localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+        umbEditMsg.textContent = "";
+        drawAdminUmbrellaEditTable();
+      };
+    });
+    Array.from(tbody.querySelectorAll('[data-del]')).forEach(btn=>{
+      btn.onclick = ()=>{
+        if(!confirm('この傘を削除しますか？'))return;
+        let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+        let id = btn.getAttribute('data-del');
+        umbrellas = umbrellas.filter(u=>u.id!==id);
+        localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+        umbEditMsg.textContent = "削除しました";
+        if(localStorage.getItem('borrow_'+id)) localStorage.removeItem('borrow_'+id);
+        drawUmbrellaList();
+        drawAdminUmbrellaEditTable();
+      }
+    });
+  }
+
+  // 一般利用
+  function hasReservedOrBorrowed(name) {
+    const umbrellas = JSON.parse(localStorage.getItem("umbrella_list")) || [];
+    if (umbrellas.some(u =>
+        (u.status === 'reserved' && u.reservedBy === name) ||
+        (u.status === 'borrowed' && localStorage.getItem('borrow_' + u.id) && JSON.parse(localStorage.getItem('borrow_' + u.id)).userName === name)
+    )) return true;
+    return false;
+  }
+
+  function getBorrowUser(umbId) {
+    const key = 'borrow_' + umbId;
+    if(localStorage.getItem(key)){
+      return (JSON.parse(localStorage.getItem(key)).userName)||"";
+    }
+    return "";
+  }
+
+  function drawUmbrellaList() {
+    const umbrellas = JSON.parse(localStorage.getItem("umbrella_list")) || [];
+    const tbody = document.getElementById('umbrellaList');
+    const inputName = document.getElementById('reserveName').value.trim();
+    tbody.innerHTML = '';
+    umbrellas.forEach(u => {
+      let reserver = u.status==='reserved' ? u.reservedBy : '';
+      let borrower = u.status==='borrowed' ? getBorrowUser(u.id) : '';
+      let usercol = u.status==='borrowed' ? borrower : (u.status==='reserved' ? reserver : '');
+      let stateText = u.status === 'available' ? '予約可' :
+                      u.status === 'reserved' ? '予約済' : '貸出中';
+      let cl = u.status;
+      let buttonHtml = '';
+      if(u.status === 'available') {
+        buttonHtml = `<button onclick="reserveUmbrella('${u.id}')">予約</button>`;
+      } else if(u.status === 'reserved') {
+        if(inputName && u.reservedBy === inputName) {
+          buttonHtml = `<button class="btn-cancel" onclick="cancelReserve('${u.id}')">予約解除</button>`;
+        }
+      } else if(u.status === 'borrowed') {
+        if(inputName && borrower === inputName) {
+          buttonHtml = `<button class="btn-return" onclick="returnUmbrella('${u.id}')">返却</button>`;
+        }
+      }
+      tbody.innerHTML += `<tr>
+        <td>${u.id}</td>
+        <td class="${cl}">${stateText}</td>
+        <td>${usercol||''}</td>
+        <td>${buttonHtml}</td>
+      </tr>`;
+    });
+  }
+
+  window.reserveUmbrella = function(id) {
+    const name = document.getElementById('reserveName').value.trim();
+    const msg = document.getElementById('reserveMsg');
+    msg.textContent = '';
+    if(!name){ msg.textContent = '名前を入力してください'; return; }
+    if(hasReservedOrBorrowed(name)){ msg.textContent = '1人で複数の傘は予約または借りられません。先に返却・解除してください。'; return;}
+    let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+    let u = umbrellas.find(u=>u.id===id);
+    if(u.status!=='available'){ msg.textContent = 'この傘は予約できません'; return;}
+    u.status = 'reserved';
+    u.reservedBy = name;
+    u.reservedAt = Date.now();
+    localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+    msg.textContent = `傘 ${u.id} を予約しました`;
+    drawUmbrellaList();
+  };
+
+  window.cancelReserve = function(id){
+    const name = document.getElementById('reserveName').value.trim();
+    const msg = document.getElementById('reserveMsg');
+    msg.textContent = '';
+    let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+    let u = umbrellas.find(u=>u.id===id);
+    if(u.status==='reserved' && u.reservedBy===name){
+      u.status = 'available';
+      u.reservedBy = '';
+      u.reservedAt = '';
+      localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+      msg.textContent = `${u.id} の予約を解除しました`;
+      drawUmbrellaList();
+    } else {
+      msg.textContent = "予約解除は本人のみ可能です";
+    }
+  };
+
+  window.returnUmbrella = function(id){
+    let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+    let u = umbrellas.find(u=>u.id===id);
+    if(u && u.status==='borrowed'){
+      u.status = 'available';
+      u.reservedBy = '';
+      u.reservedAt = '';
+      localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+      if(localStorage.getItem('borrow_'+id)) localStorage.removeItem('borrow_'+id);
+      drawUmbrellaList();
+    }
+  }
+
+  document.getElementById('reserveName').addEventListener('input', drawUmbrellaList);
+
+  // CSV/全削除
+  document.getElementById('clearBtn').onclick = function() {
+    if (confirm('本当に全データを削除しますか？')) {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('borrow_')) keysToRemove.push(key);
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+      umbrellas.forEach(u=>{
+        u.status = 'available'; u.reservedBy=''; u.reservedAt='';
+      });
+      localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+      drawUmbrellaList();
+    }
+  };
+  document.getElementById('csvBtn').onclick = function() {
+    const items = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith('borrow_')) {
+        const d = JSON.parse(localStorage.getItem(key));
+        items.push(d);
+      }
+    }
+    if(items.length === 0){
+      alert('データがありません');
+      return;
+    }
+    items.sort((a, b) => b.borrowedAt - a.borrowedAt);
+    let csv = "お名前,傘ID,貸出日時\n";
+    items.forEach(d=>{
+      csv += `"${d.userName}","${d.umbrellaId}","${new Date(d.borrowedAt).toLocaleString()}"\n`;
+    });
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'borrow_history.csv';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  };
+
+  // ---------- 貸出（QR） ----------
+  let currentUmbrellaId = null;
+  let html5QrCode = null;
+  const userNameInput = document.getElementById('userName');
+  const startScanBtn = document.getElementById('startScan');
+  const readerDiv = document.getElementById('reader');
+  const resultDiv = document.getElementById('result');
+  const borrowBtn = document.getElementById('borrowBtn');
+
+  function getCurrentUserName() {
+    // 優先: 下の貸出欄で名前入力中ならそちら
+    const qName = userNameInput.value.trim();
+    if(qName) return qName;
+    return document.getElementById('reserveName').value.trim();
+  }
+
+  startScanBtn.addEventListener('click', async () => {
+    const userName = userNameInput.value.trim();
+    if (!userName) {
+      alert('お名前を入力してください');
+      return;
+    }
+    if(hasReservedOrBorrowed(userName)){
+      alert("1人で複数の傘は予約または借りられません。先に返却・解除してください。");
+      return;
+    }
+    if (html5QrCode) {
+      try { await html5QrCode.stop(); } catch(e){}
+      try { await html5QrCode.clear(); } catch(e){}
+      html5QrCode = null;
+    }
+    startScanBtn.classList.add('hidden');
+    readerDiv.classList.remove('hidden');
+    resultDiv.textContent = "";
+    borrowBtn.classList.add('hidden');
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      onScanSuccess,
+      errorMessage => {}
+    );
+  });
+  function onScanSuccess(decodedText, decodedResult) {
+    currentUmbrellaId = decodedText;
+    resultDiv.textContent = `傘ID: ${decodedText} を読み取りました`;
+    borrowBtn.classList.remove('hidden');
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => {
+        readerDiv.classList.add('hidden');
+        startScanBtn.classList.remove('hidden');
+      }).catch(_=>{
+        readerDiv.classList.add('hidden');
+        startScanBtn.classList.remove('hidden');
+      });
+    }
+  }
+
+  borrowBtn.addEventListener('click', () => {
+    const userName = userNameInput.value.trim();
+    if(!currentUmbrellaId||!userName) return;
+    if(hasReservedOrBorrowed(userName)){
+      alert("1人で複数の傘は予約または借りられません。先に返却・解除してください。");
+      return;
+    }
+    let umbrellas = JSON.parse(localStorage.getItem("umbrella_list"));
+    let u = umbrellas.find(u=>u.id===currentUmbrellaId);
+    if(!u) { alert("この傘は台帳に登録されていません"); return;}
+    if(u.status === 'reserved' && u.reservedBy !== userName) {
+      alert("この傘は他の方が予約しています");
+      return;
+    }
+    u.status = 'borrowed';
+    u.reservedBy = '';
+    u.reservedAt = '';
+    localStorage.setItem("umbrella_list", JSON.stringify(umbrellas));
+    const data = {
+      userName: userName,
+      umbrellaId: currentUmbrellaId,
+      borrowedAt: Date.now()
+    };
+    localStorage.setItem(`borrow_${currentUmbrellaId}`, JSON.stringify(data));
+    resultDiv.textContent = `${userName} さんが傘ID: ${currentUmbrellaId} を借りました`;
+    borrowBtn.classList.add('hidden');
+    userNameInput.value = '';
+    currentUmbrellaId = null;
+    drawUmbrellaList();
+  });
+
+  drawUmbrellaList();
+</script>
+</body>
+</html>
