@@ -7,6 +7,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         postgresql-client \
         wget \
         curl \
+        unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,3 +28,9 @@ RUN apt-get update \
 # Set JAVA_HOME
 ENV JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Install AWS CLI v2
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -rf awscliv2.zip aws
