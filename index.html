@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>書籍管理アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .form-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-left: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-edit {
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+        
+        .btn-edit:hover {
+            background: #218838;
+        }
+        
+        .books-list {
+            margin-top: 30px;
+        }
+        
+        .books-list h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .book-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .book-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .book-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .book-info {
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .book-info strong {
+            color: #333;
+        }
+        
+        .book-actions {
+            margin-top: 15px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+        }
+        
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        #editFormSection {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 書籍管理アプリ</h1>
+            <p>あなたの本棚をデジタルで管理</p>
+        </header>
+        
+        <div class="content">
+            <div class="form-section" id="addFormSection">
+                <h2>新しい書籍を追加</h2>
+                <form id="addBookForm">
+                    <div class="form-group">
+                        <label for="title">タイトル *</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="author">著者 *</label>
+                        <input type="text" id="author" name="author" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="publisher">出版社</label>
+                        <input type="text" id="publisher" name="publisher">
+                    </div>
+                    <div class="form-group">
+                        <label for="published_year">出版年</label>
+                        <input type="number" id="published_year" name="published_year" min="1000" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="isbn">ISBN</label>
+                        <input type="text" id="isbn" name="isbn">
+                    </div>
+                    <div class="form-group">
+                        <label for="description">説明</label>
+                        <textarea id="description" name="description"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">追加</button>
+                </form>
+            </div>
+            
+            <div class="form-section" id="editFormSection">
+                <h2>書籍を編集</h2>
+                <form id="editBookForm">
+                    <input type="hidden" id="edit_id" name="id">
+                    <div class="form-group">
+                        <label for="edit_title">タイトル *</label>
+                        <input type="text" id="edit_title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_author">著者 *</label>
+                        <input type="text" id="edit_author" name="author" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_publisher">出版社</label>
+                        <input type="text" id="edit_publisher" name="publisher">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_published_year">出版年</label>
+                        <input type="number" id="edit_published_year" name="published_year" min="1000" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_isbn">ISBN</label>
+                        <input type="text" id="edit_isbn" name="isbn">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_description">説明</label>
+                        <textarea id="edit_description" name="description"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">更新</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelEdit()">キャンセル</button>
+                </form>
+            </div>
+            
+            <div class="books-list">
+                <h2>書籍一覧</h2>
+                <div id="booksList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadBooks() {
+            try {
+                const response = await fetch('api.php?action=list');
+                const result = await response.json();
+                
+                const booksList = document.getElementById('booksList');
+                
+                if (result.success && result.data.length > 0) {
+                    booksList.innerHTML = result.data.map(book => `
+                        <div class="book-card">
+                            <div class="book-title">${escapeHtml(book.title)}</div>
+                            <div class="book-info"><strong>著者:</strong> ${escapeHtml(book.author)}</div>
+                            ${book.publisher ? `<div class="book-info"><strong>出版社:</strong> ${escapeHtml(book.publisher)}</div>` : ''}
+                            ${book.published_year ? `<div class="book-info"><strong>出版年:</strong> ${book.published_year}</div>` : ''}
+                            ${book.isbn ? `<div class="book-info"><strong>ISBN:</strong> ${escapeHtml(book.isbn)}</div>` : ''}
+                            ${book.description ? `<div class="book-info"><strong>説明:</strong> ${escapeHtml(book.description)}</div>` : ''}
+                            <div class="book-actions">
+                                <button class="btn btn-edit" onclick="editBook(${book.id})">編集</button>
+                                <button class="btn btn-danger" onclick="deleteBook(${book.id})">削除</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    booksList.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 2H9c-1.1 0-2 .9-2 2v5.5c0 .3.2.5.5.5s.5-.2.5-.5V4c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v16c0 .6-.4 1-1 1H9c-.6 0-1-.4-1-1v-5.5c0-.3-.2-.5-.5-.5s-.5.2-.5.5V20c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                                <path d="M7.5 13h8c.3 0 .5-.2.5-.5s-.2-.5-.5-.5h-8c-.3 0-.5.2-.5.5s.2.5.5.5z"/>
+                            </svg>
+                            <h3>書籍がありません</h3>
+                            <p>上のフォームから書籍を追加してください</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading books:', error);
+            }
+        }
+        
+        document.getElementById('addBookForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await fetch('api.php?action=create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    e.target.reset();
+                    loadBooks();
+                    alert('書籍を追加しました！');
+                } else {
+                    alert('エラー: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error adding book:', error);
+                alert('書籍の追加に失敗しました');
+            }
+        });
+        
+        async function editBook(id) {
+            try {
+                const response = await fetch(`api.php?action=get&id=${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const book = result.data;
+                    document.getElementById('edit_id').value = book.id;
+                    document.getElementById('edit_title').value = book.title;
+                    document.getElementById('edit_author').value = book.author;
+                    document.getElementById('edit_publisher').value = book.publisher || '';
+                    document.getElementById('edit_published_year').value = book.published_year || '';
+                    document.getElementById('edit_isbn').value = book.isbn || '';
+                    document.getElementById('edit_description').value = book.description || '';
+                    
+                    document.getElementById('addFormSection').style.display = 'none';
+                    document.getElementById('editFormSection').style.display = 'block';
+                    document.getElementById('editFormSection').scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error('Error loading book:', error);
+            }
+        }
+        
+        function cancelEdit() {
+            document.getElementById('addFormSection').style.display = 'block';
+            document.getElementById('editFormSection').style.display = 'none';
+            document.getElementById('editBookForm').reset();
+        }
+        
+        document.getElementById('editBookForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await fetch('api.php?action=update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    cancelEdit();
+                    loadBooks();
+                    alert('書籍を更新しました！');
+                } else {
+                    alert('エラー: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error updating book:', error);
+                alert('書籍の更新に失敗しました');
+            }
+        });
+        
+        async function deleteBook(id) {
+            if (!confirm('この書籍を削除してもよろしいですか？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api.php?action=delete&id=${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadBooks();
+                    alert('書籍を削除しました');
+                } else {
+                    alert('エラー: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error deleting book:', error);
+                alert('書籍の削除に失敗しました');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        loadBooks();
+    </script>
+</body>
+</html>
